@@ -1,0 +1,20 @@
+Quincke's Method: Paramagnetic Susceptibility Report
+============================================================
+Dataset: experiment_1.csv
+  Input Density: 1.3000 g/mL
+  SI Density:    1300.00 kg/m^3
+  Volume Susc:   (6.4720+/-0.5274)e-05
+  Mass Susc Mn:  (5.8785+/-0.4057)e-08 m^3/kg
+------------------------------------------------------------
+Dataset: experiment_2.csv
+  Input Density: 1.1590 g/mL
+  SI Density:    1159.00 kg/m^3
+  Volume Susc:   (1.6348+/-0.0984)e-04
+  Mass Susc Mn:  (1.5006+/-0.0849)e-07 m^3/kg
+------------------------------------------------------------
+Dataset: experiment_3.csv
+  Input Density: 1.0850 g/mL
+  SI Density:    1085.00 kg/m^3
+  Volume Susc:   (7.2427+/-0.2641)e-05
+  Mass Susc Mn:  (7.5753+/-0.2434)e-08 m^3/kg
+------------------------------------------------------------
