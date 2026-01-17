@@ -1,0 +1,60 @@
+[project]
+name = "condensed-matter-lab"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.0",
+    "pandas>=2.3.3",
+    "pandas-stubs>=2.3.3.251201",
+    "pint>=0.25.2",
+    "scipy>=1.16.3",
+    "sympy>=1.14.0",
+    "uncertainties>=3.2.3",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+indent-width = 2
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "E",
+    "W",
+    "I",
+    "N",
+    "UP",
+    "NPY",
+    "PD",
+    "PT",
+    "SIM",
+    "RET",
+    "TID",
+    "PL",
+    "RUF",
+]
+ignore = [
+    "N803",
+    "N806",
+    "PD901",
+    "PLR2004",
+    "PLR0913",
+    "E111",
+    "E114",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.basedpyright]
+typeCheckingMode = "basic"
+pythonVersion = "3.13"
+pythonPlatform = "All"
+reportMissingTypeStubs = false
+reportUnknownMemberAccess = false
+reportUnknownVariableType = false
+reportIncompatibleMethodOverride = true
+reportUnusedImport = true
