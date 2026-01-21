@@ -203,16 +203,16 @@ def plot_seebeck_effect(paths: dict[str, Path], res: dict):
   """Plots data and fit with directional axis labels and statistical summary."""
   fig, ax = plt.subplots(figsize=(8, 5))
 
-  ax.scatter(res["delta_t"], res["emf_v"], color="black", marker="s", s=25, label="Measured Data")
+  ax.scatter(res["delta_t"], res["emf_v"] * 1e3, color="black", marker="s", s=25, label="Measured Data")
 
   𝓍_fit = np.linspace(min(res["delta_t"]), max(res["delta_t"]), 100)
-  𝓎_fit = linear_model(𝓍_fit, *res["popt"])
+  𝓎_fit = linear_model(𝓍_fit, *res["popt"]) * 1e3
 
-  fit_label = rf"$E = ({res['popt'][0]:.3e})\Delta T + ({res['popt'][1]:.3e})$"
+  fit_label = rf"$E = ({res['popt'][0] * 1e3:.3e})\Delta T + ({res['popt'][1] * 1e3:.3e})$"
   ax.plot(𝓍_fit, 𝓎_fit, "r-", linewidth=1.5, label=f"Linear Fit: {fit_label}")
 
   ax.set_xlabel(r"Temperature Difference $\Delta T$ [$^\circ$C] $\longrightarrow$")
-  ax.set_ylabel(r"Thermoelectric EMF $E$ [V] $\longrightarrow$")
+  ax.set_ylabel(r"Thermoelectric EMF $E$ [mV] $\longrightarrow$")
   ax.set_title("Thermoelectric Effect: Determination of $\\alpha$ and $\\pi$")
 
   α, 𝒸, π = res["α"], res["𝒸"], res["π"]
@@ -224,12 +224,6 @@ def plot_seebeck_effect(paths: dict[str, Path], res: dict):
     rf"$\pi_{{{res['t_eval_k']:.1f}K}} = {π.n:.3e} \pm {π.s:.3e}$ V"
     "\n"
     rf"$R^2 = {res['r2']:.4f}$"
-    "\n"
-    rf"$\mathrm{{Adj}}\ R^2 = {res['adj_r2']:.4f}$"
-    "\n"
-    rf"$p(m) = {res['p_slope']:.3e}$"
-    "\n"
-    rf"$p(c) = {res['p_intercept']:.3e}$"
   )
   ax.text(
     0.05,
