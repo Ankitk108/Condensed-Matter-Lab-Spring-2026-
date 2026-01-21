@@ -1,25 +1,34 @@
-QUINKE'S METHOD: EXPERIMENTAL CORRECTNESS REPORT
+QUINCKE'S METHOD – ANALYSIS REPORT
 ==================================================
-Magnet Calibration Linearity (R^2): 0.99434
+Calibration R²: 0.99434
 
 Dataset: experiment_1.csv
-  Density: 1.3 g/mL
-  Volume Susceptibility: (3.2360+/-0.2637)e-05
-  Mass Susceptibility:   (3.3892+/-0.2028)e-08 m^3/kg
-  Fit Correctness (R^2): 0.97413
-  Relative Uncertainty:  8.15%
+Solute mass: 15 g
+Water volume: 50.0 mL
+Solution density: 1.2970 g/mL
+Slope: (1.0100+/-0.0823)e-03 m/T²
+Volume susceptibility: (3.2286+/-0.2631)e-05
+Mass susceptibility:   (3.3892+/-0.2028)e-08 m³/kg
+R²: 0.97413
+Relative uncertainty: 8.15%
 --------------------------------------------------
 Dataset: experiment_2.csv
-  Density: 1.159 g/mL
-  Volume Susceptibility: (8.1742+/-0.4922)e-05
-  Mass Susceptibility:   (7.9528+/-0.4247)e-08 m^3/kg
-  Fit Correctness (R^2): 0.98570
-  Relative Uncertainty:  6.02%
+Solute mass: 10 g
+Water volume: 50.0 mL
+Solution density: 1.1970 g/mL
+Slope: (2.8615+/-0.1723)e-03 m/T²
+Volume susceptibility: (8.4422+/-0.5083)e-05
+Mass susceptibility:   (7.9528+/-0.4247)e-08 m³/kg
+R²: 0.98570
+Relative uncertainty: 6.02%
 --------------------------------------------------
 Dataset: experiment_3.csv
-  Density: 1.085 g/mL
-  Volume Susceptibility: (3.6213+/-0.1320)e-05
-  Mass Susceptibility:   (4.2376+/-0.1217)e-08 m^3/kg
-  Fit Correctness (R^2): 0.99209
-  Relative Uncertainty:  3.65%
+Solute mass: 5 g
+Water volume: 50.0 mL
+Solution density: 1.0970 g/mL
+Slope: (1.3542+/-0.0494)e-03 m/T²
+Volume susceptibility: (3.6614+/-0.1335)e-05
+Mass susceptibility:   (4.2376+/-0.1217)e-08 m³/kg
+R²: 0.99209
+Relative uncertainty: 3.65%
 --------------------------------------------------

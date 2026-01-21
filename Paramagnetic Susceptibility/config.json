@@ -5,17 +5,23 @@
   "experiments": [
     {
       "file_name": "experiment_1.csv",
-      "density_g_mL": 1.3,
+      "solute_mass_g": 15,
+      "water_volume_mL": 50.0,
+      "water_density_g_mL": 0.997,
       "h0_cm": 8.35
     },
     {
       "file_name": "experiment_2.csv",
-      "density_g_mL": 1.159,
+      "solute_mass_g": 10,
+      "water_volume_mL": 50.0,
+      "water_density_g_mL": 0.997,
       "h0_cm": 9.715
     },
     {
       "file_name": "experiment_3.csv",
-      "density_g_mL": 1.085,
+      "solute_mass_g": 5,
+      "water_volume_mL": 50.0,
+      "water_density_g_mL": 0.997,
       "h0_cm": 10.1
     }
   ]
