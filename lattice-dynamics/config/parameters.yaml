@@ -1,0 +1,15 @@
+lattice:
+  a: 1.0
+  N: 20
+
+monatomic:
+  mass: 1.0
+  spring: 1.0
+
+diatomic:
+  mass1: 1.0
+  mass2: 2.0
+  spring: 1.0
+
+simulation:
+  k_points: 200
