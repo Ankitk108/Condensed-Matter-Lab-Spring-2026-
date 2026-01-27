@@ -1,0 +1,11 @@
+{
+  "num_sections": 10,
+  "nominal_L_mH": 1.0,
+  "nominal_C_uF": 0.04,
+  "nominal_C1_uF": 0.147,
+  "input_units": {
+    "frequency": "kHz",
+    "inductance": "mH",
+    "capacitance": "uF"
+  }
+}

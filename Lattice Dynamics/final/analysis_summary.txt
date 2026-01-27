@@ -1,0 +1,9 @@
+LATTICE DYNAMICS ANALYSIS REPORT
+===================================
+Fitted L: 1.1158e-03 H
+Fitted C: 4.0948e-08 F
+Monatomic R^2: 0.9991
+--------------------
+Max Freq (Experimental): 42.86 kHz
+Max Freq (Theoretical): 47.09 kHz
+Nominal C1: 1.4700e-07 F

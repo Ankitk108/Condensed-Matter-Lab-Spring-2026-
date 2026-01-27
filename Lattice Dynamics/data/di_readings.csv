@@ -1,0 +1,15 @@
+branch,frequency,total_phase_degrees
+acoustic,02.511,090
+acoustic,05.019,180
+acoustic,07.843,270
+acoustic,09.804,360
+acoustic,12.640,450
+acoustic,14.279,540
+acoustic,16.061,630
+acoustic,18.115,720
+acoustic,20.349,810
+optical,30.868,0990
+optical,31.831,1080
+optical,32.514,1170
+optical,33.260,1260
+optical,33.978,1350
