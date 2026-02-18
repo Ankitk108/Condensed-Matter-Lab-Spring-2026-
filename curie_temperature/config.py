@@ -1,0 +1,4 @@
+# Configuration
+CURRENT = 1.0
+SMOOTH_WINDOW = 9
+SMOOTH_POLYORDER = 2
