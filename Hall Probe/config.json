@@ -1,4 +1,8 @@
 {
   "voltage": "17.0 V",
-  "current": "3.3 A"
+  "current": "3.3 A",
+  "magnetic_field_column_scale_to_tesla": 0.001,
+  "sample_thickness_mm": 0.5,
+  "sample_width_mm": 4.0,
+  "probe_spacing_mm": 6.0
 }

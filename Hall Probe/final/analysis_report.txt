@@ -1,0 +1,19 @@
+HALL EFFECT ANALYSIS REPORT
+
+Observation tables
+  1. Merged Hall observation table using forward and reverse readings with mean Hall voltage.
+  2. Resistivity observation table with current, voltage, resistance, and resistivity.
+
+Final results
+  Resistance R = 534.606 +/- 1.242 ohm
+  Resistivity rho = 1.782021e-01 +/- 7.161758e-04 ohm m
+  Hall coefficient R_H = 1.685095e-03 +/- 7.694399e-06 m^3/C
+  Carrier density n = 3.703950e+21 m^-3
+  Mobility mu = 9.456091e-03 m^2/(V s)
+
+Least counts used
+  Hall current meter = 0.01 mA
+  Hall voltmeter = 0.1 mV
+  Gauss meter = 0.0010 T
+  Resistivity current meter = 0.01 mA
+  Resistivity voltmeter = 0.1 mV
