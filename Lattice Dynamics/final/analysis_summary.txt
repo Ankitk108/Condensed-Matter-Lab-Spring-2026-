@@ -1,8 +1,15 @@
 LATTICE DYNAMICS ANALYSIS REPORT
 ===================================
-Fitted L: 1.1158e-03 H
-Fitted C: 4.0948e-08 F
+Fitted L: 1.1158e-03 ± 2.39e+10 H
+Fitted C: 4.0948e-08 ± 8.77e+05 F
 Monatomic R^2: 0.9991
+--------------------
+Diatomic Fit L: 9.2219e-04 ± 2.41e+00 H
+Diatomic Fit C1: 6.7296e-08 ± 4.17e-04 F
+Diatomic Fit C2: 7.3780e-08 ± 2.00e-05 F
+Diatomic R^2 (overall): 0.8628
+Diatomic R^2 (acoustic): 0.3563
+Diatomic R^2 (optical): -6.1470
 --------------------
 Max Freq (Experimental): 42.86 kHz
 Max Freq (Theoretical): 47.09 kHz

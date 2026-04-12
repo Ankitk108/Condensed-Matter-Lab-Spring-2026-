@@ -1,0 +1,48 @@
+B-H CURVE ANALYSIS REPORT
+==============================
+
+Method
+------
+Each CH1 and CH2 trace was fitted with a simple sinusoid of the form V(t) = C + A sin(wt + phi), converted to H and B using the instrument equations from the manual, and parameterized through time to form the closed B-H loop.
+H = N*Vx/(R*L), with N=300, R=55.0 ohm, L=0.0323 m
+B = 0.5*Vy [tesla]
+
+Blank Correction
+----------------
+A linear air-core background B = alpha*H was estimated from the blank run and subtracted from all specimen runs.
+alpha = 7.358336e-05 T m/A
+
+Transformer Stampings
+---------------------
+C-V1: f=50.033 Hz, R2(Vx)=0.99945, R2(Vy)=0.99600, loop area=477.592 J/m^3, power density=23895.1 W/m^3, Br=0.0135707 T, Hc=415.749 A/m, dB/dH|0=3.25711e-05
+C-V2: f=49.996 Hz, R2(Vx)=0.99955, R2(Vy)=0.99793, loop area=262.685 J/m^3, power density=13133.1 W/m^3, Br=0.00579685 T, Hc=105.115 A/m, dB/dH|0=5.4057e-05
+C-V3: f=49.959 Hz, R2(Vx)=0.99955, R2(Vy)=0.99788, loop area=299.996 J/m^3, power density=14987.5 W/m^3, Br=0.00640019 T, Hc=116.815 A/m, dB/dH|0=5.47418e-05
+Largest loss for Transformer Stampings: C-V1 with 477.592 J/m^3 per cycle.
+
+Ferrite Rod
+-----------
+C-V1: f=49.953 Hz, R2(Vx)=0.99932, R2(Vy)=0.99900, loop area=48.6841 J/m^3, power density=2431.94 W/m^3, Br=0.00195876 T, Hc=64.2961 A/m, dB/dH|0=2.98182e-05
+C-V2: f=49.932 Hz, R2(Vx)=0.99935, R2(Vy)=0.99923, loop area=77.4331 J/m^3, power density=3866.41 W/m^3, Br=0.00217806 T, Hc=73.0761 A/m, dB/dH|0=2.93348e-05
+C-V3: f=49.956 Hz, R2(Vx)=0.99940, R2(Vy)=0.99918, loop area=185.396 J/m^3, power density=9261.69 W/m^3, Br=0.0038463 T, Hc=84.0525 A/m, dB/dH|0=4.52466e-05
+Largest loss for Ferrite Rod: C-V3 with 185.396 J/m^3 per cycle.
+
+Iron Nail
+---------
+C-V1: f=49.942 Hz, R2(Vx)=0.99925, R2(Vy)=0.99805, loop area=538.941 J/m^3, power density=26915.9 W/m^3, Br=0.0215906 T, Hc=441.732 A/m, dB/dH|0=4.70929e-05
+C-V2: f=49.962 Hz, R2(Vx)=0.99942, R2(Vy)=0.99843, loop area=1109.73 J/m^3, power density=55444.2 W/m^3, Br=0.0302673 T, Hc=602.459 A/m, dB/dH|0=4.79474e-05
+C-V3: f=49.968 Hz, R2(Vx)=0.99929, R2(Vy)=0.99858, loop area=1883.67 J/m^3, power density=94123.2 W/m^3, Br=0.0392007 T, Hc=763.977 A/m, dB/dH|0=5.01307e-05
+Largest loss for Iron Nail: C-V3 with 1883.67 J/m^3 per cycle.
+
+Hacksaw Blade
+-------------
+C-V1: f=49.947 Hz, R2(Vx)=0.99958, R2(Vy)=0.99958, loop area=482.466 J/m^3, power density=24097.7 W/m^3, Br=0.0381755 T, Hc=252.025 A/m, dB/dH|0=0.000143187
+C-V2: f=49.921 Hz, R2(Vx)=0.99907, R2(Vy)=0.99911, loop area=800.836 J/m^3, power density=39978.2 W/m^3, Br=0.0468879 T, Hc=323.39 A/m, dB/dH|0=0.000158951
+C-V3: f=49.934 Hz, R2(Vx)=0.99827, R2(Vy)=0.99721, loop area=1022.16 J/m^3, power density=51040.1 W/m^3, Br=0.0495685 T, Hc=381.076 A/m, dB/dH|0=0.000142987
+Largest loss for Hacksaw Blade: C-V3 with 1022.16 J/m^3 per cycle.
+
+Material Comparison at Highest Drive
+---------------------------------
+Energy-loss ranking: Iron Nail > Hacksaw Blade > Transformer Stampings > Ferrite Rod
+Initial permeability ranking: Hacksaw Blade > Transformer Stampings > Iron Nail > Ferrite Rod
+Retentivity ranking: Hacksaw Blade > Iron Nail > Transformer Stampings > Ferrite Rod
+Coercivity ranking: Iron Nail > Hacksaw Blade > Transformer Stampings > Ferrite Rod

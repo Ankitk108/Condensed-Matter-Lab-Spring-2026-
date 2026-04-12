@@ -1,6 +1,8 @@
 import os
 import json
 import re
+import shutil
+import subprocess
 import pandas as pd
 import matplotlib.pyplot as plt
 from config import (
@@ -16,7 +18,7 @@ from utils import (
     compute_capacitance,
     compute_transition_temperature,
 )
-from plotting import plot_rt, plot_derivative, finalize_plot, plot_vtotal_fit
+from plotting import start_figure, plot_rt, plot_derivative, finalize_plot, plot_vtotal_fit
 
 BASE_DIR = os.path.dirname(__file__)
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -67,58 +69,226 @@ def cleanup_legacy_root_outputs():
             os.remove(legacy_path)
 
 
-def _render_table_image(df, title, out_path):
-    n_rows = len(df)
-    fig_h = max(3.0, 0.45 * (n_rows + 2))
-    fig_w = min(20.0, max(10.0, 1.6 * len(df.columns)))
-    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
-    ax.axis("off")
-    ax.set_title(title, fontsize=12, pad=8)
-    table = ax.table(
-        cellText=df.values,
-        colLabels=df.columns,
-        cellLoc="center",
-        loc="center",
-    )
-    table.auto_set_font_size(False)
-    table.set_fontsize(8)
-    table.scale(1.0, 1.2)
-    plt.tight_layout()
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
+def remove_if_exists(path):
+    if os.path.exists(path):
+        os.remove(path)
 
 
-def prettify_columns(df):
-    pretty_map = {
-        "Temperature_C": "Temperature (°C)",
-        "Vdc_V": "Vdc (V)",
-        "Vsc_V": "Vsc (V)",
-        "C": "C = Vsc / Vdc",
-        "epsilon_r": "εr",
-        "epsilon_r_smooth": "εr (smoothed)",
-        "d_epsilon_r_dT": "dεr/dT (1/°C)",
-        "sample": "Sample",
-        "Tc_peak_degC": "Tc from εr peak (°C)",
-        "Tc_derivative_degC": "Tc from max dεr/dT (°C)",
-        "Tc_combined_degC": "Combined Tc (°C)",
-        "Tc_peak_unc_degC": "Uncertainty in Tc from εr peak (°C)",
-        "Tc_derivative_unc_degC": "Uncertainty in Tc from max dεr/dT (°C)",
-        "Tc_combined_unc_degC": "Combined Tc uncertainty (°C)",
-        "Tc_combined_unc_pct": "Combined uncertainty (%)",
-        "Tc_method_difference_degC": "|Tc(εr peak) - Tc(max dεr/dT)| (°C)",
-        "epsilon_noise_std": "Std dev of εr smoothing residual",
-        "vtotal_fit_V": "Vtotal fit (V)",
-        "C_ref": "Reference C",
-        "n_points_total": "Total data points",
-        "n_points_vtotal_fit": "Points used in Vtotal fit",
-    }
+def rename_columns(df, pretty_map):
     out = df.copy()
     out.columns = [pretty_map.get(c, c.replace("_", " ")) for c in out.columns]
     return out
 
 
-def save_stacked_table_image(df, title, filename, folder):
-    _render_table_image(prettify_columns(df), title, os.path.join(folder, filename))
+def prettify_columns(df):
+    pretty_map = {
+        "Temperature_C": "Temperature (degC)",
+        "Vdc_V": "Vdc (V)",
+        "Vsc_V": "Vsc (V)",
+        "C": "C = Vsc / Vdc",
+        "epsilon_r": "Relative permittivity",
+        "epsilon_r_smooth": "Relative permittivity (smoothed)",
+        "d_epsilon_r_dT": "d(relative permittivity)/dT (1/degC)",
+        "sample": "Sample",
+        "Tc_peak_degC": "Tc from permittivity peak (degC)",
+        "Tc_derivative_degC": "Tc from max d(permittivity)/dT (degC)",
+        "Tc_combined_degC": "Combined Tc (degC)",
+        "Tc_peak_unc_degC": "Uncertainty in Tc from permittivity peak (degC)",
+        "Tc_derivative_unc_degC": "Uncertainty in Tc from max d(permittivity)/dT (degC)",
+        "Tc_combined_unc_degC": "Combined Tc uncertainty (degC)",
+        "Tc_combined_unc_pct": "Combined uncertainty (%)",
+        "Tc_method_difference_degC": "|Tc(permittivity peak) - Tc(max d(permittivity)/dT)| (degC)",
+        "epsilon_noise_std": "Std dev of permittivity smoothing residual",
+        "epsilon_instr_unc_mean": "Mean propagated permittivity uncertainty",
+        "vtotal_fit_V": "Vtotal fit (V)",
+        "C_ref": "Reference C",
+        "n_points_total": "Total data points",
+        "n_points_vtotal_fit": "Points used in Vtotal fit",
+        "Tc_peak_mc_std": "MC std of Tc from permittivity peak (degC)",
+        "Tc_derivative_mc_std": "MC std of Tc from max d(permittivity)/dT (degC)",
+    }
+    return rename_columns(df, pretty_map)
+
+
+def latexify_columns(df):
+    pretty_map = {
+        "Temperature_C": r"Temperature ($^\circ$C)",
+        "Vdc_V": r"$V_{\mathrm{dc}}$ (V)",
+        "Vsc_V": r"$V_{\mathrm{sc}}$ (V)",
+        "C": r"$C = V_{\mathrm{sc}}/V_{\mathrm{dc}}$",
+        "epsilon_r": r"$\epsilon_r$",
+        "epsilon_r_smooth": r"$\epsilon_r$ (smoothed)",
+        "d_epsilon_r_dT": r"$d\epsilon_r/dT$ (1/$^\circ$C)",
+        "sample": "Sample",
+        "Tc_peak_degC": r"$T_c$ from peak ($^\circ$C)",
+        "Tc_derivative_degC": r"$T_c$ from deriv. ($^\circ$C)",
+        "Tc_combined_degC": r"Combined $T_c$ ($^\circ$C)",
+        "Tc_peak_unc_degC": r"Peak unc. ($^\circ$C)",
+        "Tc_derivative_unc_degC": r"Deriv. unc. ($^\circ$C)",
+        "Tc_combined_unc_degC": r"Combined unc. ($^\circ$C)",
+        "Tc_combined_unc_pct": r"Combined unc. (\%)",
+        "Tc_method_difference_degC": r"Method diff. ($^\circ$C)",
+        "epsilon_noise_std": r"Noise std.",
+        "epsilon_instr_unc_mean": r"Mean instr. unc.",
+        "vtotal_fit_V": r"$V_{\mathrm{total}}$ fit (V)",
+        "C_ref": r"Reference $C$",
+        "n_points_total": r"Total data points",
+        "n_points_vtotal_fit": r"Points used in $V_{\mathrm{total}}$ fit",
+        "Tc_peak_mc_std": r"MC std. peak ($^\circ$C)",
+        "Tc_derivative_mc_std": r"MC std. deriv. ($^\circ$C)",
+    }
+    return rename_columns(df, pretty_map)
+
+
+def latex_escape(text):
+    text = str(text)
+    replacements = {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+    }
+    return "".join(replacements.get(ch, ch) for ch in text)
+
+
+def format_latex_cell(value):
+    if isinstance(value, str):
+        return latex_escape(value)
+    return latex_escape(f"{value}")
+
+
+def build_table_document(df, title, a4_layout=False):
+    pretty_df = latexify_columns(df)
+    n_cols = len(pretty_df.columns)
+    col_spec = "l" + "c" * (n_cols - 1)
+    header = " & ".join(pretty_df.columns) + r" \\"
+    rows = [" & ".join(format_latex_cell(value) for value in row) + r" \\" for row in pretty_df.to_numpy()]
+    title_tex = latex_escape(title)
+    is_data_table = a4_layout
+    document_class = r"\documentclass[10pt]{article}" if is_data_table else r"\documentclass[varwidth=80cm,border=8pt]{standalone}"
+    geometry_line = r"\usepackage[a4paper,landscape,margin=0.45in]{geometry}" if is_data_table else None
+    font_size_line = r"\footnotesize" if is_data_table else r"\scriptsize"
+    resize_line = r"\resizebox{!}{0.86\textheight}{%" if is_data_table else None
+    lines = [
+        document_class,
+        r"\usepackage{booktabs,array,amsmath,graphicx}",
+        r"\usepackage[T1]{fontenc}",
+        r"\usepackage{lmodern}",
+        *( [geometry_line] if geometry_line else [] ),
+        *( [r"\pagestyle{empty}"] if is_data_table else [] ),
+        r"\setlength{\tabcolsep}{3pt}",
+        r"\renewcommand{\arraystretch}{0.88}",
+        r"\begin{document}",
+        r"\centering",
+        rf"{{\large\bfseries {title_tex}\par}}",
+        r"\vspace{0.4em}",
+        font_size_line,
+        *( [resize_line] if resize_line else [] ),
+        rf"\begin{{tabular}}{{{col_spec}}}",
+        r"\toprule",
+        header,
+        r"\midrule",
+        *rows,
+        r"\bottomrule",
+        r"\end{tabular}",
+        *( [r"}"] if is_data_table else [] ),
+        r"\end{document}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def build_a4_wrapper_document(title, embedded_pdf_name):
+    title_tex = latex_escape(title)
+    lines = [
+        r"\documentclass[10pt]{article}",
+        r"\usepackage[a4paper,landscape,margin=0.45in]{geometry}",
+        r"\usepackage{graphicx}",
+        r"\pagestyle{empty}",
+        r"\begin{document}",
+        r"\centering",
+        rf"{{\large\bfseries {title_tex}\par}}",
+        r"\vspace{0.4em}",
+        rf"\includegraphics[width=\textwidth,height=0.84\textheight,keepaspectratio]{{{embedded_pdf_name}}}",
+        r"\end{document}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def compile_latex_to_pdf(tex_path):
+    subprocess.run(
+        ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", os.path.basename(tex_path)],
+        cwd=os.path.dirname(tex_path),
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+    )
+
+
+def convert_pdf_to_png(pdf_path):
+    stem = os.path.splitext(pdf_path)[0]
+    if shutil.which("pdftocairo"):
+        subprocess.run(
+            ["pdftocairo", "-png", "-r", "300", "-singlefile", pdf_path, stem],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
+        )
+        return
+    subprocess.run(
+        ["pdftoppm", "-png", "-r", "300", "-singlefile", pdf_path, stem],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+    )
+
+
+def convert_pdf_to_svg(pdf_path):
+    stem = os.path.splitext(pdf_path)[0]
+    svg_path = f"{stem}.svg"
+    if shutil.which("pdftocairo"):
+        subprocess.run(
+            ["pdftocairo", "-svg", pdf_path, svg_path],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
+        )
+        return
+    raise RuntimeError("SVG export requires pdftocairo.")
+
+
+def cleanup_latex_artifacts(directory, stem):
+    for suffix in (".tex", ".aux", ".log"):
+        remove_if_exists(os.path.join(directory, f"{stem}{suffix}"))
+    remove_if_exists(os.path.join(directory, stem))
+
+
+def save_table_outputs(df, title, stem):
+    tex_path = os.path.join(TABLES_DIR, f"{stem}.tex")
+    pdf_path = os.path.join(TABLES_DIR, f"{stem}.pdf")
+    png_path = os.path.join(TABLES_DIR, f"{stem}.png")
+    svg_path = os.path.join(TABLES_DIR, f"{stem}.svg")
+    remove_if_exists(pdf_path)
+    remove_if_exists(png_path)
+    remove_if_exists(svg_path)
+    with open(tex_path, "w", encoding="utf-8") as f:
+        f.write(build_table_document(df, title, a4_layout=False))
+    try:
+        compile_latex_to_pdf(tex_path)
+        convert_pdf_to_png(pdf_path)
+        convert_pdf_to_svg(pdf_path)
+    finally:
+        cleanup_latex_artifacts(TABLES_DIR, stem)
+
+
+def save_plot_outputs(stem):
+    plt.savefig(os.path.join(PLOTS_DIR, f"{stem}.png"))
+    plt.savefig(os.path.join(PLOTS_DIR, f"{stem}.pdf"))
 
 
 clear_output_dir(RESULTS_DIR)
@@ -159,15 +329,16 @@ for label, filename in FILES.items():
 
     sample_slug = slugify(label)
     processed_df = df.sort_values("Temperature_C").reset_index(drop=True).copy()
-    processed_df["epsilon_r_smooth"] = transition["epsilon_smooth"]
     processed_df["d_epsilon_r_dT"] = transition["d_eps_dT"]
+    processed_df = processed_df[
+        ["Temperature_C", "Vdc_V", "Vsc_V", "C", "epsilon_r", "d_epsilon_r_dT"]
+    ].copy()
     numeric_cols = processed_df.select_dtypes(include="number").columns
     processed_df[numeric_cols] = processed_df[numeric_cols].round(6)
-    save_stacked_table_image(
+    save_table_outputs(
         processed_df,
-        title=f"{label} Processed Data Table",
-        filename=f"{sample_slug}_processed_data_table.png",
-        folder=TABLES_DIR,
+        title=f"{label} Data Table",
+        stem=f"{sample_slug}_processed_data_table",
     )
 
     summary_rows.append(
@@ -212,29 +383,43 @@ for label, filename in FILES.items():
 # Plot epsilon_r vs T
 # -----------------------
 
-plt.figure()
-styles = [("o", "-"), ("s", "--"), ("^", "-.")]
+start_figure(7.4, 4.8)
+styles = [
+    {"marker": "o", "linestyle": "-", "color": "#1f77b4"},
+    {"marker": "s", "linestyle": "--", "color": "#d62728"},
+    {"marker": "^", "linestyle": "-.", "color": "#2ca02c"},
+]
 
-for (label, df), (marker, linestyle) in zip(results.items(), styles):
-    plot_rt(df["Temperature_C"], df["epsilon_r"], label=label, marker=marker, linestyle=linestyle)
+for (label, df), style in zip(results.items(), styles):
+    plot_rt(
+        df["Temperature_C"],
+        df["epsilon_r"],
+        label=label,
+        marker=style["marker"],
+        linestyle=style["linestyle"],
+        color=style["color"],
+    )
     transition = transition_results[label]
     plt.scatter(
         transition["Tc_peak"],
         transition["epsilon_at_peak"],
         marker="X",
         s=60,
+        color=style["color"],
         label=(
-            f"{label} Tc (εr peak) = {transition['Tc_peak']:.2f} "
-            f"+/- {transition['Tc_peak_unc']:.2f} °C"
+            rf"{label} $T_c$ ($\epsilon_r$ peak) = {transition['Tc_peak']:.2f} "
+            rf"$\pm$ {transition['Tc_peak_unc']:.2f}$^\circ$C"
         ),
     )
 
 finalize_plot(
-    title=r"Relative Permittivity $\epsilon_r$ vs Temperature",
-    xlabel=r"Temperature ($^\circ$C)",
-    ylabel=r"Relative Permittivity $\epsilon_r$",
+    title=r"Relative Permittivity vs. Temperature",
+    xlabel=r"Temperature, $T$ ($^\circ$C)",
+    ylabel=r"Relative permittivity, $\epsilon_r$",
+    legend_loc="best",
+    legend_ncol=1,
 )
-plt.savefig(os.path.join(PLOTS_DIR, "epsilon_r_vs_T_all.png"))
+save_plot_outputs("epsilon_r_vs_T_all")
 if SHOW_PLOTS:
     plt.show()
 else:
@@ -244,18 +429,19 @@ else:
 # Plot epsilon_r vs T (offset for visual separation)
 # -----------------------
 
-plt.figure()
+start_figure(7.4, 4.8)
 offset_step = 0.35
 
-for idx, ((label, df), (marker, linestyle)) in enumerate(zip(results.items(), styles)):
+for idx, ((label, df), style) in enumerate(zip(results.items(), styles)):
     offset = idx * offset_step
     y_vals = df["epsilon_r"] + offset
     plot_rt(
         df["Temperature_C"],
         y_vals,
         label=f"{label} (+{offset:.2f})",
-        marker=marker,
-        linestyle=linestyle,
+        marker=style["marker"],
+        linestyle=style["linestyle"],
+        color=style["color"],
     )
     transition = transition_results[label]
     plt.scatter(
@@ -263,18 +449,21 @@ for idx, ((label, df), (marker, linestyle)) in enumerate(zip(results.items(), st
         transition["epsilon_at_peak"] + offset,
         marker="X",
         s=60,
+        color=style["color"],
         label=(
-            f"{label} Tc (offset) = {transition['Tc_peak']:.2f} "
-            f"+/- {transition['Tc_peak_unc']:.2f} Â°C"
+            rf"{label} offset $T_c$ = {transition['Tc_peak']:.2f} "
+            rf"$\pm$ {transition['Tc_peak_unc']:.2f}$^\circ$C"
         ),
     )
 
 finalize_plot(
-    title=r"Relative Permittivity $\epsilon_r$ vs Temperature (Offset Curves)",
-    xlabel=r"Temperature ($^\circ$C)",
-    ylabel=r"Relative Permittivity $\epsilon_r$ + offset",
+    title=r"Relative Permittivity vs. Temperature (Offset for Clarity)",
+    xlabel=r"Temperature, $T$ ($^\circ$C)",
+    ylabel=r"Relative permittivity, $\epsilon_r$ + offset",
+    legend_loc="best",
+    legend_ncol=1,
 )
-plt.savefig(os.path.join(PLOTS_DIR, "epsilon_r_vs_T_all_offset.png"))
+save_plot_outputs("epsilon_r_vs_T_all_offset")
 if SHOW_PLOTS:
     plt.show()
 else:
@@ -284,23 +473,25 @@ else:
 # Plot d(epsilon_r)/dT vs T with Tc markers
 # -----------------------
 
-plt.figure()
-for (label, transition), (marker, linestyle) in zip(transition_results.items(), styles):
+start_figure(7.4, 4.8)
+for (label, transition), style in zip(transition_results.items(), styles):
     plot_derivative(
         transition["temperature"],
         transition["d_eps_dT"],
         label=label,
-        marker=marker,
-        linestyle=linestyle,
+        marker=style["marker"],
+        linestyle=style["linestyle"],
+        color=style["color"],
     )
     plt.axvline(
         transition["Tc_derivative"],
+        color=style["color"],
         linestyle=":",
         linewidth=1.0,
         alpha=0.7,
         label=(
-            f"{label} Tc (max dεr/dT) = {transition['Tc_derivative']:.2f} "
-            f"+/- {transition['Tc_derivative_unc']:.2f} °C"
+            rf"{label} $T_c$ (max $d\epsilon_r/dT$) = {transition['Tc_derivative']:.2f} "
+            rf"$\pm$ {transition['Tc_derivative_unc']:.2f}$^\circ$C"
         ),
     )
     plt.scatter(
@@ -308,14 +499,17 @@ for (label, transition), (marker, linestyle) in zip(transition_results.items(), 
         transition["d_eps_dT_at_peak"],
         marker="D",
         s=40,
+        color=style["color"],
     )
 
 finalize_plot(
-    title=r"$d\epsilon_r/dT$ vs Temperature",
-    xlabel=r"Temperature ($^\circ$C)",
+    title=r"Derivative of Relative Permittivity vs. Temperature",
+    xlabel=r"Temperature, $T$ ($^\circ$C)",
     ylabel=r"$d\epsilon_r/dT$ (1/$^\circ$C)",
+    legend_loc="best",
+    legend_ncol=1,
 )
-plt.savefig(os.path.join(PLOTS_DIR, "d_epsilon_r_dT_vs_T_all.png"))
+save_plot_outputs("d_epsilon_r_dT_vs_T_all")
 if SHOW_PLOTS:
     plt.show()
 else:
@@ -325,18 +519,28 @@ else:
 # Plot V_total constant fit
 # -----------------------
 
-plt.figure()
-for label, valid in vtotal_fit_points.items():
+start_figure(7.2, 4.6)
+for (label, valid), style in zip(vtotal_fit_points.items(), styles):
     vtotal_values = valid["Vdc_V"] + valid["Vsc_V"]
     vtotal_fit = vtotal_fit_values[label]
-    plot_vtotal_fit(valid["Temperature_C"], vtotal_values, vtotal_fit, label)
+    plot_vtotal_fit(
+        valid["Temperature_C"],
+        vtotal_values,
+        vtotal_fit,
+        label,
+        marker=style["marker"],
+        linestyle=style["linestyle"],
+        color=style["color"],
+    )
 
 finalize_plot(
-    title=r"Constant Fit for $V_{total}$ using valid points",
-    xlabel=r"Temperature ($^\circ$C)",
-    ylabel=r"$V_{total}$ (V)",
+    title=r"Estimated Constant $V_{\mathrm{total}}$",
+    xlabel=r"Temperature, $T$ ($^\circ$C)",
+    ylabel=r"$V_{\mathrm{total}}$ (V)",
+    legend_loc="best",
+    legend_ncol=1,
 )
-plt.savefig(os.path.join(PLOTS_DIR, "vtotal_constant_fit.png"))
+save_plot_outputs("vtotal_constant_fit")
 if SHOW_PLOTS:
     plt.show()
 else:
@@ -352,11 +556,10 @@ summary_image_df = summary_df[
     ]
 ].copy()
 summary_image_df = summary_image_df.round(3)
-save_stacked_table_image(
+save_table_outputs(
     summary_image_df,
     title="Curie Temperature Summary",
-    filename="curie_temperature_summary_table.png",
-    folder=TABLES_DIR,
+    stem="curie_temperature_summary_table",
 )
 
 error_df = summary_df[
@@ -374,19 +577,17 @@ error_df = summary_df[
     ]
 ].copy()
 error_df = error_df.round(4)
-save_stacked_table_image(
+save_table_outputs(
     error_df,
     title="Curie Temperature Error Analysis",
-    filename="curie_temperature_error_analysis_table.png",
-    folder=TABLES_DIR,
+    stem="curie_temperature_error_analysis_table",
 )
 
 vtotal_df = pd.DataFrame(vtotal_rows).round(6)
-save_stacked_table_image(
+save_table_outputs(
     vtotal_df,
     title="Vtotal Fit Summary",
-    filename="vtotal_fit_summary_table.png",
-    folder=TABLES_DIR,
+    stem="vtotal_fit_summary_table",
 )
 
 with open(os.path.join(RESULTS_DIR, "transition_temperature_report.txt"), "w", encoding="utf-8") as f:

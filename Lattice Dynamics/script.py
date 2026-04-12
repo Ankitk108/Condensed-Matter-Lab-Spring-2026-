@@ -74,7 +74,75 @@ def analyze_mono(paths: dict[str, Path], config: dict) -> dict[str, Any] | None:
   }
 
 
-def plot_results(paths, mono, di_readings):
+def diatomic_theory(x, L, C1, C2):
+  theta, branch = x
+  inv_c1 = 1.0 / C1
+  inv_c2 = 1.0 / C2
+  term = inv_c1 + inv_c2
+  rad = term**2 - 4.0 * inv_c1 * inv_c2 * (np.sin(theta / 2.0) ** 2)
+  rad = np.maximum(rad, 0.0)
+  omega_sq = (1.0 / L) * (term + branch * np.sqrt(rad))
+  return np.sqrt(np.maximum(omega_sq, 0.0)) / (2.0 * np.pi)
+
+
+def analyze_diatomic(
+  paths: dict[str, Path], config: dict, mono: dict[str, Any] | None
+) -> dict[str, Any] | None:
+  data_path = paths["data"] / "di_readings.csv"
+  if not data_path.exists():
+    return None
+
+  df = pd.read_csv(data_path)
+  if df.empty:
+    return None
+
+  f_scale = 1e3 if config["input_units"]["frequency"] == "kHz" else 1.0
+  theta = np.radians(df.iloc[:, 2].to_numpy()) / config["num_sections"]
+  freq = df.iloc[:, 1].to_numpy() * f_scale
+  branch = df.iloc[:, 0].str.lower().map({"acoustic": -1.0, "optical": 1.0}).to_numpy()
+
+  l0 = mono["L"].n if mono else config["nominal_L_mH"] * 1e-3
+  c1_0 = config["nominal_C1_uF"] * 1e-6
+  c2_0 = config["nominal_C_uF"] * 1e-6
+
+  popt, pcov = curve_fit(
+    diatomic_theory,
+    (theta, branch),
+    freq,
+    p0=[l0, c1_0, c2_0],
+    bounds=(0, np.inf),
+  )
+
+  fit = diatomic_theory((theta, branch), *popt)
+  ss_res = np.sum((freq - fit) ** 2)
+  ss_tot = np.sum((freq - np.mean(freq)) ** 2)
+  r2 = 1.0 - (ss_res / ss_tot)
+
+  result = {
+    "theta": theta,
+    "freq": freq,
+    "branch": branch,
+    "popt": popt,
+    "pcov": pcov,
+    "r2": r2,
+    "L": ufloat(popt[0], np.sqrt(pcov[0, 0])),
+    "C1": ufloat(popt[1], np.sqrt(pcov[1, 1])),
+    "C2": ufloat(popt[2], np.sqrt(pcov[2, 2])),
+  }
+
+  for label, b_val in [("acoustic", -1.0), ("optical", 1.0)]:
+    mask = branch == b_val
+    if np.any(mask):
+      y = freq[mask]
+      yfit = diatomic_theory((theta[mask], branch[mask]), *popt)
+      ss_res_b = np.sum((y - yfit) ** 2)
+      ss_tot_b = np.sum((y - np.mean(y)) ** 2)
+      result[f"r2_{label}"] = 1.0 - (ss_res_b / ss_tot_b)
+
+  return result
+
+
+def plot_results(paths, mono, di_readings, di_fit, config):
   fig1, ax1 = plt.subplots(figsize=(6, 4))
   ax1.scatter(mono["theta"], mono["freq"] / 1e3, c="k", marker="o", label="Observed Data")
   t_grid = np.linspace(min(mono["theta"]), max(mono["theta"]), 200)
@@ -97,16 +165,25 @@ def plot_results(paths, mono, di_readings):
       "acoustic": {"marker": "o", "label": "Acoustic"},
       "optical": {"marker": "^", "label": "Optical"},
     }
-    for b, config in branch_configs.items():
+    for b, branch_cfg in branch_configs.items():
       b_df = di_readings[di_readings.iloc[:, 0].str.lower() == b]
       if b_df.empty:
         continue
-      t = np.radians(b_df.iloc[:, 2].to_numpy()) / 10.0
+      t = np.radians(b_df.iloc[:, 2].to_numpy()) / config["num_sections"]
       v = b_df.iloc[:, 1].to_numpy()
       idx = np.argsort(t)
       t, v = t[idx], v[idx]
-      ax2.scatter(t, v, c="k", marker=config["marker"], label=config["label"])
+      ax2.scatter(t, v, c="k", marker=branch_cfg["marker"], label=branch_cfg["label"])
       ax2.plot(t, v, "k-", alpha=0.8)
+    if di_fit is not None:
+      # Show full first Brillouin zone so the optical minimum is visible
+      t_grid = np.linspace(0.0, np.pi, 400)
+      for label, b_val, style in [
+        ("Acoustic Fit", -1.0, "k--"),
+        ("Optical Fit", 1.0, "k:"),
+      ]:
+        v_fit = diatomic_theory((t_grid, np.full_like(t_grid, b_val)), *di_fit["popt"])
+        ax2.plot(t_grid, v_fit / 1e3, style, label=label)
     ax2.set_title("Diatomic Lattice Dispersion")
     ax2.set_xlabel(r"Phase $\theta$ [rad]")
     ax2.set_ylabel(r"Frequency $\nu$ [kHz]")
@@ -115,16 +192,26 @@ def plot_results(paths, mono, di_readings):
     fig2.savefig(paths["plots"] / "di_dispersion.png")
 
 
-def generate_output(paths, cfg, mono, di_df):
+def generate_output(paths, cfg, mono, di_df, di_fit):
   txt_path = paths["final"] / "analysis_summary.txt"
   nom_C1 = cfg["nominal_C1_uF"] * 1e-6
 
   with open(txt_path, "w") as f:
     f.write("LATTICE DYNAMICS ANALYSIS REPORT\n")
     f.write("=" * 35 + "\n")
-    f.write(f"Fitted L: {mono['L'].n:.4e} H\n")
-    f.write(f"Fitted C: {mono['C'].n:.4e} F\n")
+    f.write(f"Fitted L: {mono['L'].n:.4e} ± {mono['L'].s:.2e} H\n")
+    f.write(f"Fitted C: {mono['C'].n:.4e} ± {mono['C'].s:.2e} F\n")
     f.write(f"Monatomic R^2: {mono['r2']:.4f}\n")
+    if di_fit is not None:
+      f.write("-" * 20 + "\n")
+      f.write(f"Diatomic Fit L: {di_fit['L'].n:.4e} ± {di_fit['L'].s:.2e} H\n")
+      f.write(f"Diatomic Fit C1: {di_fit['C1'].n:.4e} ± {di_fit['C1'].s:.2e} F\n")
+      f.write(f"Diatomic Fit C2: {di_fit['C2'].n:.4e} ± {di_fit['C2'].s:.2e} F\n")
+      f.write(f"Diatomic R^2 (overall): {di_fit['r2']:.4f}\n")
+      if "r2_acoustic" in di_fit:
+        f.write(f"Diatomic R^2 (acoustic): {di_fit['r2_acoustic']:.4f}\n")
+      if "r2_optical" in di_fit:
+        f.write(f"Diatomic R^2 (optical): {di_fit['r2_optical']:.4f}\n")
     f.write("-" * 20 + "\n")
     f.write(f"Max Freq (Experimental): {mono['max_exp'] / 1e3:.2f} kHz\n")
     f.write(f"Max Freq (Theoretical): {mono['max_theory'] / 1e3:.2f} kHz\n")
@@ -174,6 +261,10 @@ def generate_output(paths, cfg, mono, di_df):
   with open(tex_path, "w") as f:
     f.write("\n".join(content))
 
+  skip_latex = os.getenv("SKIP_LATEX", "").lower() in {"1", "true", "yes"}
+  if skip_latex:
+    return
+
   try:
     subprocess.run(
       [
@@ -215,9 +306,10 @@ def main():
     if (paths["data"] / "di_readings.csv").exists()
     else None
   )
+  di_fit = analyze_diatomic(paths, cfg, mono)
   if mono:
-    plot_results(paths, mono, di_df)
-    generate_output(paths, cfg, mono, di_df)
+    plot_results(paths, mono, di_df, di_fit, cfg)
+    generate_output(paths, cfg, mono, di_df, di_fit)
 
 
 if __name__ == "__main__":
